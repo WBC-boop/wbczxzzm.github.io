@@ -1,0 +1,646 @@
+```html
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新智召农产品智能查询系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Microsoft YaHei', 'Arial', sans-serif; }
+        body { background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%); min-height: 100vh; color: #333; line-height: 1.6; }
+        .header { background: linear-gradient(135deg, #2c6e49 0%, #1a4d33 100%); color: white; padding: 15px 20px; text-align: center; position: relative; height: 120px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+        .header::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path fill="rgba(255,255,255,0.1)" d="M0,0 L100,0 L100,100 L0,100 Z"/></svg>'); background-size: cover; background-position: center; z-index: -1; }
+        .company-name { font-family: 'SimSun', serif; font-size: 22px; font-weight: bold; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); }
+        .company-name .english { font-family: 'Arial', sans-serif; font-size: 14px; font-weight: normal; margin-top: 2px; opacity: 0.9; }
+        .search-container { width: 100%; max-width: 800px; margin: 15px auto; position: relative; }
+        .search-input { width: 100%; height: 42px; border: 2px solid #4a90e2; border-radius: 25px; padding: 0 20px 0 45px; background: rgba(255, 255, 255, 0.9); font-size: 16px; outline: none; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+        .search-input::placeholder { color: #999; }
+        .search-input:focus { border-color: #2a75d0; box-shadow: 0 0 0 3px rgba(42, 117, 208, 0.2); background: white; }
+        .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #4a90e2; font-size: 18px; }
+        .search-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #4a90e2; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 50%; transition: all 0.2s; }
+        .search-btn:hover { background: rgba(74, 144, 226, 0.1); }
+        .main { flex: 1; padding: 15px; overflow-y: auto; }
+        .tab-container { display: flex; justify-content: space-between; margin: 15px 0; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); overflow: hidden; }
+        .tab-item { flex: 1; text-align: center; padding: 15px 0; font-size: 16px; cursor: pointer; transition: all 0.3s; border-left: 1px solid #eee; position: relative; }
+        .tab-item:first-child { border-left: none; }
+        .tab-item.active { background: linear-gradient(135deg, #4a90e2 0%, #2a75d0 100%); color: white; font-weight: bold; }
+        .tab-item.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 40px; height: 4px; background: white; border-radius: 2px; }
+        .tab-content { background: white; border-radius: 12px; box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08); padding: 20px; display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .content-title { font-size: 20px; color: #2c6e49; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e8f5e9; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
+        .feature-card { background: #f8f9fa; border-radius: 10px; padding: 15px; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05); transition: all 0.3s; cursor: pointer; border: 1px solid #e0e0e0; }
+        .feature-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); border-color: #4a90e2; }
+        .feature-icon { font-size: 24px; color: #4a90e2; margin-bottom: 10px; text-align: center; }
+        .feature-title { font-weight: bold; margin-bottom: 5px; color: #2c6e49; text-align: center; }
+        .feature-desc { font-size: 14px; color: #666; text-align: center; }
+        .product-search { margin-top: 15px; }
+        .product-search input { width: 100%; height: 40px; border: 2px solid #e0e0e0; border-radius: 20px; padding: 0 15px; font-size: 16px; transition: all 0.3s; }
+        .product-search input:focus { border-color: #4a90e2; outline: none; }
+        .result-section { background: #f8f9fa; border-radius: 10px; padding: 15px; margin-top: 15px; border-left: 4px solid #4a90e2; }
+        .result-title { font-weight: bold; color: #2c6e49; margin-bottom: 8px; font-size: 16px; }
+        .result-content { font-size: 15px; line-height: 1.6; color: #444; }
+        .loading { display: none; text-align: center; padding: 15px; color: #4a90e2; font-weight: bold; font-size: 16px; }
+        .error-message { color: #e74c3c; font-style: italic; margin-top: 10px; }
+        .footer { border-top: 1px solid #e0e0e0; display: flex; justify-content: space-around; align-items: center; height: 60px; background-color: white; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1); }
+        .footer-item { display: flex; flex-direction: column; align-items: center; color: #666; font-size: 12px; cursor: pointer; }
+        .footer-item.active { color: #2c6e49; font-weight: bold; }
+        .footer-icon { font-size: 22px; margin-bottom: 3px; }
+        .footer-item img { width: 24px; height: 24px; object-fit: contain; }
+        .hidden { display: none !important; }
+        .placeholder-text { color: #aaa; font-style: italic; }
+        /* 用户设置页面样式 */
+        .user-settings { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); padding: 25px; }
+        .avatar-container { text-align: center; margin-bottom: 25px; position: relative; }
+        .avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #4a90e2; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3); }
+        .avatar:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(74, 144, 226, 0.4); }
+        .avatar-upload-btn { position: absolute; bottom: 0; right: 0; background: #4a90e2; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); transition: all 0.2s; }
+        .avatar-upload-btn:hover { background: #2a75d0; transform: scale(1.1); }
+        .user-form-group { margin-bottom: 20px; }
+        .user-form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #2c6e49; }
+        .user-form-control { width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; transition: all 0.3s; }
+        .user-form-control:focus { outline: none; border-color: #4a90e2; box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2); }
+        .user-form-row { display: flex; gap: 15px; }
+        .user-form-row .user-form-control { flex: 1; }
+        .password-hint { font-size: 13px; color: #777; margin-top: 5px; display: block; }
+        .save-btn { display: block; width: 100%; background: linear-gradient(135deg, #4a90e2 0%, #2a75d0 100%); color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
+        .save-btn:hover { background: linear-gradient(135deg, #3a7bc2 0%, #1a65c0 100%); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4); }
+        .error-message { color: #e74c3c; font-style: italic; margin-top: 8px; display: none; }
+        .success-message { color: #2c6e49; font-weight: bold; margin-top: 8px; display: none; }
+        /* 子页面样式 */
+        .sub-page { display: none; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); padding: 20px; margin: 15px 0; }
+        .sub-page.active { display: block; animation: fadeIn 0.4s ease; }
+        .sub-page-title { font-size: 18px; color: #2c6e49; margin-bottom: 10px; }
+        .input-group { display: flex; align-items: center; margin-bottom: 10px; }
+        .input-group input { flex: 1; height: 40px; border: 2px solid #e0e0e0; border-radius: 20px 0 0 20px; padding: 0 15px; font-size: 16px; transition: all 0.3s; }
+        .input-group input:focus { border-color: #4a90e2; outline: none; }
+        .input-group button { height: 40px; background: linear-gradient(135deg, #4a90e2 0%, #2a75d0 100%); color: white; border: none; padding: 0 15px; border-radius: 0 20px 20px 0; cursor: pointer; transition: all 0.3s; }
+        .input-group button:hover { background: linear-gradient(135deg, #3a7bc2 0%, #1a65c0 100%); }
+        .url-output { margin-top: 5px; font-size: 14px; color: #444; }
+        .history-item { display: flex; align-items: center; margin-bottom: 5px; }
+        .history-item input { flex: 1; margin-right: 10px; padding: 5px; border: 1px solid #e0e0e0; border-radius: 5px; }
+        .history-item button { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .history-item button:hover { background: #c0392b; }
+        .demand-input { width: 100%; height: 100px; border: 2px solid #e0e0e0; border-radius: 10px; padding: 10px; font-size: 14px; }
+        .demand-list div { position: relative; padding: 10px; border-bottom: 1px solid #eee; }
+        .demand-list button { position: absolute; right: 10px; top: 10px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .demand-list button:hover { background: #c0392b; }
+        @media (max-width: 768px) { .feature-grid { grid-template-columns: 1fr; } .tab-container { flex-direction: column; } .tab-item { border-left: none; border-bottom: 1px solid #eee; } .user-form-row { flex-direction: column; gap: 0; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">
+            新智召现代智能物流科技有限公司
+            <div class="english">Xinzhizhao Modern Intelligent Logistics Technology Co., Ltd.</div>
+        </div>
+        <div class="search-container">
+            <div class="search-icon">🔍</div>
+            <input type="text" class="search-input" id="global-search" placeholder="输入蔬菜或水果名称搜索...">
+            <div class="search-btn" id="global-search-btn">🔍</div>
+        </div>
+    </div>
+    <div class="main">
+        <div class="tab-container">
+            <div class="tab-item active" data-tab="product-ai" data-show-in="home">产品AI查询</div>
+            <div class="tab-item" data-tab="logistics" data-show-in="orders">物流查询</div>
+            <div class="tab-item" data-tab="farmer" data-show-in="home">农户信息查询</div>
+            <div class="tab-item" data-tab="demand" data-show-in="home">需求发布</div>
+        </div>
+        <!-- 产品AI查询内容 -->
+        <div id="product-ai" class="tab-content active">
+            <h2 class="content-title">产品AI查询</h2>
+            <div class="product-search">
+                <input type="text" id="product-search-input" placeholder="输入蔬菜或水果名称...">
+                <div class="search-btn" id="product-search-btn">🔍</div>
+            </div>
+            <div class="result-section">
+                <div class="result-title">特性</div>
+                <div id="product-characteristics" class="result-content placeholder-text">请输入蔬菜或者水果</div>
+            </div>
+            <div class="result-section">
+                <div class="result-title">种植方法</div>
+                <div id="product-planting-method" class="result-content placeholder-text">请输入蔬菜或者水果</div>
+            </div>
+            <div class="result-section">
+                <div class="result-title">主要产地</div>
+                <div id="product-main-origin" class="result-content placeholder-text">请输入蔬菜或者水果</div>
+            </div>
+        </div>
+        <!-- 物流查询页面 -->
+        <div id="logistics" class="tab-content">
+            <h2 class="content-title">物流查询</h2>
+            <div class="feature-grid">
+                <div class="feature-card" data-sub="waybill-query">
+                    <div class="feature-icon">📦</div>
+                    <div class="feature-title">运单查询</div>
+                    <div class="feature-desc">输入运单号查询物流状态</div>
+                </div>
+                <div class="feature-card" data-sub="realtime-track">
+                    <div class="feature-icon">📍</div>
+                    <div class="feature-title">实时追踪</div>
+                    <div class="feature-desc">查看货物当前位置和预计到达时间</div>
+                </div>
+                <div class="feature-card" data-sub="history-record">
+                    <div class="feature-icon">📋</div>
+                    <div class="feature-title">历史记录</div>
+                    <div class="feature-desc">查看历史物流订单和运输记录</div>
+                </div>
+            </div>
+            <div id="waybill-query-sub" class="sub-page">
+                <h3 class="sub-page-title">运单查询</h3>
+                <div class="input-group">
+                    <input type="text" class="waybill-input" placeholder="输入运单号1">
+                    <button class="confirm-btn">确认</button>
+                </div>
+                <div class="url-output"></div>
+                <div class="input-group">
+                    <input type="text" class="waybill-input" placeholder="输入运单号2">
+                    <button class="confirm-btn">确认</button>
+                </div>
+                <div class="url-output"></div>
+                <div class="input-group">
+                    <input type="text" class="waybill-input" placeholder="输入运单号3">
+                    <button class="confirm-btn">确认</button>
+                </div>
+                <div class="url-output"></div>
+            </div>
+            <div id="realtime-track-sub" class="sub-page">
+                <h3 class="sub-page-title">实时追踪</h3>
+                <div class="result-content">暂未上线，敬请期待</div>
+            </div>
+            <div id="history-record-sub" class="sub-page">
+                <h3 class="sub-page-title">历史记录</h3>
+                <div id="history-list"></div>
+            </div>
+        </div>
+        <!-- 农户信息查询内容 -->
+        <div id="farmer" class="tab-content">
+            <h2 class="content-title">农户信息查询</h2>
+            <div class="feature-grid">
+                <div class="feature-card" data-sub="farmer-info">
+                    <div class="feature-icon">👨‍🌾</div>
+                    <div class="feature-title">农户信息</div>
+                    <div class="feature-desc">包含基本信息、资质认证和联系方式</div>
+                </div>
+                <div class="feature-card" data-sub="planting-record">
+                    <div class="feature-icon">🌱</div>
+                    <div class="feature-title">种植记录</div>
+                    <div class="feature-desc">查看农户种植历史和产量数据</div>
+                </div>
+            </div>
+            <div id="farmer-info-sub" class="sub-page">
+                <h3 class="sub-page-title">农户信息</h3>
+                <div id="farmer-list"></div>
+            </div>
+            <div id="planting-record-sub" class="sub-page">
+                <h3 class="sub-page-title">种植记录</h3>
+                <div class="result-content">暂未上线，敬请期待</div>
+            </div>
+        </div>
+        <!-- 需求发布内容 -->
+        <div id="demand" class="tab-content">
+            <h2 class="content-title">需求发布</h2>
+            <div class="feature-grid">
+                <div class="feature-card" data-sub="demand-publish">
+                    <div class="feature-icon">📝</div>
+                    <div class="feature-title">农产品需求</div>
+                    <div class="feature-desc">发布水果/蔬菜采购需求</div>
+                </div>
+                <div class="feature-card" data-sub="demand-manage">
+                    <div class="feature-icon">📁</div>
+                    <div class="feature-title">需求管理</div>
+                    <div class="feature-desc">查看和管理已发布的采购需求</div>
+                </div>
+            </div>
+            <div id="demand-publish-sub" class="sub-page">
+                <h3 class="sub-page-title">农产品需求</h3>
+                <textarea id="demand-input" class="demand-input" placeholder="输入需求内容..."></textarea>
+                <button id="publish-btn" class="save-btn">发布</button>
+            </div>
+            <div id="demand-manage-sub" class="sub-page">
+                <h3 class="sub-page-title">需求管理</h3>
+                <div id="demand-list" class="demand-list"></div>
+            </div>
+        </div>
+        <!-- 用户设置页面（新增） -->
+        <div id="user-settings" class="tab-content">
+            <h2 class="content-title">用户设置</h2>
+            <div class="user-settings">
+                <div class="avatar-container">
+                    <img id="user-avatar" class="avatar" src="https://ui-avatars.com/api/?name=User&background=4A90E2&color=fff" alt="用户头像">
+                    <div class="avatar-upload-btn" id="avatar-upload-btn">+</div>
+                    <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+                </div>
+                <div class="user-form-group">
+                    <label for="nickname">昵称</label>
+                    <input type="text" id="nickname" class="user-form-control" placeholder="请输入昵称">
+                </div>
+                <div class="user-form-row">
+                    <div class="user-form-group">
+                        <label for="email">邮箱</label>
+                        <input type="email" id="email" class="user-form-control" placeholder="请输入邮箱">
+                    </div>
+                    <div class="user-form-group">
+                        <label for="phone">手机号</label>
+                        <input type="tel" id="phone" class="user-form-control" placeholder="请输入手机号">
+                    </div>
+                </div>
+                <div class="user-form-group">
+                    <label for="password">密码（可选，用于下次登录）</label>
+                    <input type="password" id="password" class="user-form-control" placeholder="设置登录密码">
+                    <div class="password-hint">不设置密码可直接登录，但设置后下次登录更方便</div>
+                </div>
+                <div id="user-error" class="error-message"></div>
+                <div id="user-success" class="success-message">设置已保存！</div>
+                <button id="save-settings" class="save-btn">保存设置</button>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <div class="footer-item active" data-page="home">
+            <div class="footer-icon">🏠</div>
+            <div>首页</div>
+        </div>
+        <div class="footer-item" data-page="orders">
+            <div class="footer-icon">📦</div>
+            <div>订单</div>
+        </div>
+        <div class="footer-item" data-page="user">
+            <div class="footer-icon">👤</div>
+            <div>用户</div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 顶部全局搜索按钮
+            const globalSearchBtn = document.getElementById('global-search-btn');
+            const globalSearchInput = document.getElementById('global-search');
+            globalSearchBtn.addEventListener('click', function() {
+                const query = globalSearchInput.value.trim();
+                if (query) {
+                    // 切换到产品AI查询
+                    document.querySelector('.tab-item[data-tab="product-ai"]').click();
+                    // 搜索产品
+                    const productInput = document.getElementById('product-search-input');
+                    productInput.value = query;
+                    // 直接调用搜索函数
+                    performProductSearch();
+                }
+            });
+
+            // 产品AI查询搜索按钮
+            const productSearchBtn = document.getElementById('product-search-btn');
+            const productSearchInput = document.getElementById('product-search-input');
+            productSearchBtn.addEventListener('click', function() {
+                if (productSearchInput.value.trim()) {
+                    performProductSearch();
+                }
+            });
+
+            // Tab切换功能
+            const tabItems = document.querySelectorAll('.tab-item');
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // 更新激活状态
+                    tabItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    // 显示对应内容
+                    const tabId = this.getAttribute('data-tab');
+                    tabContents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === tabId) {
+                            content.classList.add('active');
+                        }
+                    });
+                    // 隐藏所有子页面
+                    document.querySelectorAll('.sub-page').forEach(sub => sub.classList.remove('active'));
+                });
+            });
+
+            // 底部导航切换
+            const footerItems = document.querySelectorAll('.footer-item');
+            footerItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // 更新激活状态
+                    footerItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    // 根据点击的导航切换页面
+                    const page = this.getAttribute('data-page');
+                    if (page === 'orders') {
+                        // 点击订单导航 → 显示物流查询内容
+                        showTabsForPage('orders');
+                        activateTab('logistics');
+                    } else if (page === 'home') {
+                        // 点击首页 → 显示产品AI、农户信息、需求发布内容
+                        showTabsForPage('home');
+                        activateTab('product-ai');
+                    } else if (page === 'user') {
+                        // 点击用户 → 显示用户设置页面
+                        showTabsForPage('none');
+                        document.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        document.getElementById('user-settings').classList.add('active');
+                    }
+                    // 隐藏所有子页面
+                    document.querySelectorAll('.sub-page').forEach(sub => sub.classList.remove('active'));
+                });
+            });
+
+            // 显示指定页面的Tab
+            function showTabsForPage(page) {
+                tabItems.forEach(item => {
+                    const showIn = item.getAttribute('data-show-in');
+                    if (showIn === page) {
+                        item.classList.remove('hidden');
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+            }
+
+            // 激活指定Tab
+            function activateTab(tabId) {
+                // 隐藏所有内容
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                });
+                // 显示指定内容
+                const targetContent = document.getElementById(tabId);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+                // 激活对应的Tab按钮
+                tabItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-tab') === tabId) {
+                        item.classList.add('active');
+                    }
+                });
+            }
+
+            // 子页面点击功能
+            const featureCards = document.querySelectorAll('.feature-card');
+            featureCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const subId = this.getAttribute('data-sub') + '-sub';
+                    document.querySelectorAll('.sub-page').forEach(sub => sub.classList.remove('active'));
+                    const subPage = document.getElementById(subId);
+                    if (subPage) {
+                        subPage.classList.add('active');
+                    }
+                });
+            });
+
+            // 初始化产品AI查询
+            let performProductSearch; // 声明为全局变量以便外部访问
+            function initProductSearch() {
+                const fruitsAndVegs = {"苹果":{"characteristics":"脆爽、多汁、甜或酸味。","plantingMethod":"在阳光充足、排水良好的土壤中种植种子或嫁接。","mainOrigin":"中国（陕西省）、美国、波兰。"},"香蕉":{"characteristics":"柔软、甜美、弯曲黄色果实。","plantingMethod":"在热带气候中从根茎繁殖。","mainOrigin":"印度、中国（广东省）、印尼。"},"橙子":{"characteristics":"多汁、柑橘味、橙色皮果实。","plantingMethod":"在亚热带地区从种子种植。","mainOrigin":"巴西、美国、中国（湖南省）。"},"草莓":{"characteristics":"红色、多汁、甜美、外有种子。","plantingMethod":"在肥沃、阳光充足土壤中种植匍匐茎。","mainOrigin":"美国、墨西哥、中国（山东省）。"},"西红柿":{"characteristics":"多汁、红色、多用途果蔬。","plantingMethod":"室内育苗后移栽到阳光充足园地。","mainOrigin":"中国（山东省）、印度、美国。"},"胡萝卜":{"characteristics":"脆爽、橙色根茎蔬菜。","plantingMethod":"直接播种在松散土壤中。","mainOrigin":"中国（河南省）、美国、俄罗斯。"},"西兰花":{"characteristics":"绿色花序、营养丰富蔬菜。","plantingMethod":"在凉爽天气移栽幼苗。","mainOrigin":"中国（山东省）、印度、美国。"},"菠菜":{"characteristics":"叶菜类、富含铁质蔬菜。","plantingMethod":"在凉爽、湿润土壤中播种。","mainOrigin":"中国（河北省）、美国、日本。"},"生菜":{"characteristics":"脆叶、沙拉基础蔬菜。","plantingMethod":"在半阴处直接播种。","mainOrigin":"中国（四川省）、美国、西班牙。"},"土豆":{"characteristics":"淀粉质块茎、多用途主食。","plantingMethod":"在垄沟中种植块茎。","mainOrigin":"中国（内蒙古）、印度、俄罗斯。"},"洋葱":{"characteristics":"辛辣球根、多层蔬菜。","plantingMethod":"在排水良好土壤中种植鳞茎。","mainOrigin":"中国（山东省）、印度、美国。"},"大蒜":{"characteristics":"强烈风味、蒜瓣球根。","plantingMethod":"秋季种植蒜瓣，春季收获。","mainOrigin":"中国（山东省）、印度、韩国。"},"黄瓜":{"characteristics":"脆爽、多水绿色蔬菜。","plantingMethod":"在温暖、阳光充足处播种。","mainOrigin":"中国（山东省）、俄罗斯、土耳其。"},"葡萄":{"characteristics":"甜美、多汁、簇生果实。","plantingMethod":"在排水良好土壤中扦插或嫁接。","mainOrigin":"中国（新疆）、意大利、美国。"},"梨":{"characteristics":"多汁、脆甜、梨形果实。","plantingMethod":"在温和气候中种植树苗。","mainOrigin":"中国（河北省）、美国、阿根廷。"},"桃子":{"characteristics":"多汁、毛茸茸、甜美果实。","plantingMethod":"在阳光充足处种植嫁接苗。","mainOrigin":"中国（山东省）、意大利、西班牙。"},"蓝莓":{"characteristics":"蓝色、酸甜、抗氧化果实。","plantingMethod":"在酸性土壤中种植灌木。","mainOrigin":"中国（云南省）、美国、加拿大。"},"菠萝":{"characteristics":"酸甜、多汁、冠状果实。","plantingMethod":"在热带从冠芽繁殖。","mainOrigin":"哥斯达黎加、菲律宾、中国（广东省）。"},"芒果":{"characteristics":"甜美、多汁、热带果实。","plantingMethod":"在温暖气候中从种子或嫁接。","mainOrigin":"印度、中国（海南省）、泰国。"},"柠檬":{"characteristics":"酸味、黄色、柑橘果实。","plantingMethod":"在亚热带从种子或扦插。","mainOrigin":"印度、墨西哥、中国（四川省）。"},"玉米":{"characteristics":"甜美、粒状、黄色谷物蔬菜。","plantingMethod":"在温暖土壤中直接播种。","mainOrigin":"美国、中国（黑龙江省）、巴西。"},"茄子":{"characteristics":"紫色、光滑、多用途蔬菜。","plantingMethod":"室内育苗后移栽到温暖处。","mainOrigin":"中国（河北省）、印度、埃及。"},"辣椒":{"characteristics":"辣味、彩色、铃铛形蔬菜。","plantingMethod":"在温暖气候中育苗移栽。","mainOrigin":"中国（湖南省）、墨西哥、土耳其。"},"芹菜":{"characteristics":"脆爽、茎叶、芳香蔬菜。","plantingMethod":"在凉爽天气中播种幼苗。","mainOrigin":"中国（山东省）、美国、墨西哥。"},"菜花":{"characteristics":"白色花序、营养丰富蔬菜。","plantingMethod":"在凉爽季节移栽幼苗。","mainOrigin":"中国（山东省）、印度、美国。"},"芦笋":{"characteristics":"嫩茎、绿色、营养蔬菜。","plantingMethod":"在排水良好土壤中种植冠芽。","mainOrigin":"中国（山东省）、秘鲁、墨西哥。"},"蘑菇":{"characteristics":"肉质、伞状、真菌蔬菜。","plantingMethod":"在黑暗、潮湿环境中培养孢子。","mainOrigin":"中国（福建省）、美国、荷兰。"},"韭菜":{"characteristics":"葱味、细长叶蔬菜。","plantingMethod":"在肥沃土壤中播种或分株。","mainOrigin":"中国（河北省）、土耳其、埃及。"},"卷心菜":{"characteristics":"层层叶球、脆爽蔬菜。","plantingMethod":"在凉爽天气中移栽幼苗。","mainOrigin":"中国（山东省）、印度、俄罗斯。"},"甜瓜":{"characteristics":"甜美、多汁、圆形果实。","plantingMethod":"在温暖土壤中播种藤蔓。","mainOrigin":"中国（新疆）、土耳其、伊朗。"},"西瓜":{"characteristics":"多汁、红色、巨型果实。","plantingMethod":"在热带从种子种植藤蔓。","mainOrigin":"中国（广西省）、土耳其、巴西。"},"樱桃":{"characteristics":"小巧、甜酸、红色果实。","plantingMethod":"在温和气候中嫁接树苗。","mainOrigin":"土耳其、美国、中国（山东省）。"},"杏子":{"characteristics":"橙色、甜美、核果果实。","plantingMethod":"在阳光充足处种植树苗。","mainOrigin":"土耳其、中国（新疆）、伊朗。"},"李子":{"characteristics":"多汁、甜酸、紫色果实。","plantingMethod":"在排水良好土壤中嫁接。","mainOrigin":"中国（陕西省）、塞尔维亚、罗马尼亚。"},"无花果":{"characteristics":"甜美、多籽、梨形果实。","plantingMethod":"在温暖气候中扦插树苗。","mainOrigin":"土耳其、埃及、中国（山东省）。"},"猕猴桃":{"characteristics":"绿色、多汁、毛茸茸果实。","plantingMethod":"在温和气候中种植藤蔓。","mainOrigin":"中国（陕西省）、新西兰、意大利。"},"石榴":{"characteristics":"红色、多籽、酸甜果实。","plantingMethod":"在干燥气候中种植树苗。","mainOrigin":"伊朗、印度、中国（云南省）。"},"椰子":{"characteristics":"硬壳、多水、热带果实。","plantingMethod":"在热带从种子种植棕榈树。","mainOrigin":"印尼、菲律宾、中国（海南省）。"},"木瓜":{"characteristics":"橙色、多汁、热带果实。","plantingMethod":"在温暖气候中从种子种植。","mainOrigin":"印度、巴西、中国（广东省）。"},"火龙果":{"characteristics":"红色皮、白肉、多籽果实。","plantingMethod":"在热带扦插仙人掌藤。","mainOrigin":"越南、中国（广西省）、泰国。"},"绿豆":{"characteristics":"小绿豆、营养豆类蔬菜。","plantingMethod":"在温暖土壤中直接播种。","mainOrigin":"印度、中国（内蒙古）、缅甸。"},"豌豆":{"characteristics":"绿色、甜美、荚果蔬菜。","plantingMethod":"在凉爽季节播种攀援植株。","mainOrigin":"中国（四川省）、印度、美国。"},"四季豆":{"characteristics":"绿色、脆嫩、荚果蔬菜。","plantingMethod":"在温暖天气中播种藤蔓。","mainOrigin":"中国（云南省）、印度、土耳其。"},"扁豆":{"characteristics":"扁平、蛋白质丰富豆类。","plantingMethod":"在干燥气候中播种。","mainOrigin":"印度、加拿大、中国（甘肃省）。"},"鹰嘴豆":{"characteristics":"圆形、坚果味豆类蔬菜。","plantingMethod":"在温和气候中播种。","mainOrigin":"印度、澳大利亚、中国（新疆）。"},"红薯":{"characteristics":"甜美、橙色块茎蔬菜。","plantingMethod":"在温暖土壤中种植藤蔓。","mainOrigin":"中国（山东省）、尼日利亚、坦桑尼亚。"},"山药":{"characteristics":"长形、淀粉质块茎蔬菜。","plantingMethod":"在热带从块茎种植藤蔓。","mainOrigin":"尼日利亚、中国（河南省）、加纳。"},"芋头":{"characteristics":"淀粉质、球根蔬菜。","plantingMethod":"在湿润土壤中种植块茎。","mainOrigin":"中国（广西省）、尼日利亚、加纳。"},"姜":{"characteristics":"辛辣、根茎调味蔬菜。","plantingMethod":"在温暖、潮湿环境中种植根茎。","mainOrigin":"印度、中国（山东省）、印尼。"},"蒜苗":{"characteristics":"绿色、葱蒜味叶茎蔬菜。","plantingMethod":"在凉爽土壤中播种蒜瓣。","mainOrigin":"中国（山东省）、韩国、日本。"},"空心菜":{"characteristics":"中空茎、叶菜蔬菜。","plantingMethod":"在湿润环境中播种或扦插。","mainOrigin":"中国（广东省）、泰国、越南。"},"苋菜":{"characteristics":"红色或绿色叶菜蔬菜。","plantingMethod":"在温暖土壤中直接播种。","mainOrigin":"中国（江苏省）、印度、尼日利亚。"},"苦瓜":{"characteristics":"苦味、疙瘩表面蔬菜。","plantingMethod":"在热带藤蔓上种植种子。","mainOrigin":"中国（广西省）、印度、菲律宾。"},"丝瓜":{"characteristics":"长形、多汁藤果蔬菜。","plantingMethod":"在温暖气候中播种藤蔓。","mainOrigin":"中国（浙江省）、印度、越南。"},"南瓜":{"characteristics":"橙色、大型果实蔬菜。","plantingMethod":"在阳光充足处播种藤蔓。","mainOrigin":"中国（山东省）、印度、俄罗斯。"},"冬瓜":{"characteristics":"白色、大型、多汁蔬菜。","plantingMethod":"在热带从种子种植藤蔓。","mainOrigin":"中国（广东省）、印度、泰国。"},"莲藕":{"characteristics":"多孔、脆爽根茎蔬菜。","plantingMethod":"在水中种植莲根。","mainOrigin":"中国（湖北省）、印度、越南。"},"竹笋":{"characteristics":"嫩脆、竹子幼芽蔬菜。","plantingMethod":"在竹林中自然生长或栽培。","mainOrigin":"中国（浙江省）、日本、泰国。"},"香菇":{"characteristics":"伞状、肉质真菌蔬菜。","plantingMethod":"在木屑或稻草上培养孢子。","mainOrigin":"中国（福建省）、日本、韩国。"},"金针菇":{"characteristics":"细长、白色簇生蔬菜。","plantingMethod":"在黑暗环境中培养。","mainOrigin":"中国（河北省）、日本、韩国。"},"木耳":{"characteristics":"黑色、胶质真菌蔬菜。","plantingMethod":"在木头上培养孢子。","mainOrigin":"中国（黑龙江省）、泰国、越南。"},"银耳":{"characteristics":"白色、胶质真菌蔬菜。","plantingMethod":"在培养基上人工栽培。","mainOrigin":"中国（四川省）、泰国、马来西亚。"},"豆芽":{"characteristics":"脆嫩、发芽豆类蔬菜。","plantingMethod":"在水中浸泡豆子发芽。","mainOrigin":"中国（江苏省）、韩国、日本。"},"紫苏":{"characteristics":"芳香、紫色叶蔬菜。","plantingMethod":"在阳光充足土壤中播种。","mainOrigin":"日本、中国（山东省）、韩国。"},"薄荷":{"characteristics":"清凉、芳香叶蔬菜。","plantingMethod":"在湿润土壤中扦插。","mainOrigin":"美国、印度、中国（安徽省）。"},"罗勒":{"characteristics":"香甜、绿色叶调味蔬菜。","plantingMethod":"在温暖气候中播种。","mainOrigin":"印度、泰国、中国（云南省）。"},"欧芹":{"characteristics":"卷曲叶、芳香蔬菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"土耳其、埃及、中国（山东省）。"},"香菜":{"characteristics":"强烈风味、叶茎蔬菜。","plantingMethod":"在凉爽天气中播种。","mainOrigin":"墨西哥、中国（河北省）、印度。"},"茴香":{"characteristics":"甜香、球茎叶蔬菜。","plantingMethod":"在温和气候中播种。","mainOrigin":"印度、中国（浙江省）、埃及。"},"莴笋":{"characteristics":"脆爽、茎叶蔬菜。","plantingMethod":"在凉爽季节移栽幼苗。","mainOrigin":"中国（四川省）、美国、西班牙。"},"球茎甘蓝":{"characteristics":"球形茎、脆爽蔬菜。","plantingMethod":"在凉爽天气中播种。","mainOrigin":"中国（山东省）、德国、荷兰。"},"甜菜":{"characteristics":"红色根茎、甜美蔬菜。","plantingMethod":"直接播种在松散土壤中。","mainOrigin":"俄罗斯、法国、中国（内蒙古）。"},"芜菁":{"characteristics":"白色根茎、叶菜蔬菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"中国（河北省）、俄罗斯、加拿大。"},"萝卜":{"characteristics":"脆辣、白或红根茎蔬菜。","plantingMethod":"直接播种在肥沃土壤中。","mainOrigin":"中国（山东省）、日本、韩国。"},"大头菜":{"characteristics":"大型、白根茎蔬菜。","plantingMethod":"在凉爽天气中播种。","mainOrigin":"中国（山东省）、日本、韩国。"},"秋葵":{"characteristics":"粘液质、绿色荚果蔬菜。","plantingMethod":"在温暖气候中播种。","mainOrigin":"印度、中国（广东省）、尼日利亚。"},"豇豆":{"characteristics":"长荚、绿色豆类蔬菜。","plantingMethod":"在热带藤蔓上种植。","mainOrigin":"中国（广西省）、印度、泰国。"},"蚕豆":{"characteristics":"大粒、绿色荚果蔬菜。","plantingMethod":"在凉爽季节播种。","mainOrigin":"中国（四川省）、埃及、意大利。"},"毛豆":{"characteristics":"绿色、毛茸荚果蔬菜。","plantingMethod":"在温暖土壤中播种大豆。","mainOrigin":"中国（黑龙江省）、日本、美国。"},"刀豆":{"characteristics":"宽荚、扁平豆类蔬菜。","plantingMethod":"在温暖气候中藤蔓种植。","mainOrigin":"印度、中国（云南省）、巴西。"},"橄榄":{"characteristics":"绿色或黑、油质果实。","plantingMethod":"在地中海气候中种植树苗。","mainOrigin":"西班牙、意大利、中国（甘肃省）。"},"鳄梨":{"characteristics":"奶油质、绿色果实。","plantingMethod":"在热带从种子或嫁接。","mainOrigin":"墨西哥、多米尼加、中国（云南省）。"},"哈密瓜":{"characteristics":"橙色肉、网纹皮果实。","plantingMethod":"在温暖土壤中播种藤蔓。","mainOrigin":"中国（新疆）、土耳其、美国。"},"桑葚":{"characteristics":"紫黑、甜酸、簇生果实。","plantingMethod":"在温和气候中种植树苗。","mainOrigin":"中国（江苏省）、土耳其、伊朗。"},"覆盆子":{"characteristics":"红色、多粒、甜酸果实。","plantingMethod":"在凉爽气候中种植灌木。","mainOrigin":"俄罗斯、墨西哥、中国（辽宁省）。"},"黑莓":{"characteristics":"黑色、多粒、甜酸果实。","plantingMethod":"在温和土壤中种植藤蔓。","mainOrigin":"美国、墨西哥、中国（云南省）。"},"蔓越莓":{"characteristics":"红色、酸味、小果实。","plantingMethod":"在酸性沼泽中种植藤蔓。","mainOrigin":"美国、加拿大、中国（黑龙江省）。"},"荔枝":{"characteristics":"红色皮、白肉、甜美果实。","plantingMethod":"在亚热带从种子或嫁接。","mainOrigin":"中国（广东省）、印度、泰国。"},"龙眼":{"characteristics":"褐色皮、白肉、甜美果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"中国（广东省）、泰国、越南。"},"榴莲":{"characteristics":"刺皮、强烈风味果实。","plantingMethod":"在热带从种子种植树。","mainOrigin":"泰国、马来西亚、中国（海南省）。"},"山竹":{"characteristics":"紫皮、白肉、甜酸果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"泰国、马来西亚、中国（云南省）。"},"杨梅":{"characteristics":"红色、酸甜、多汁果实。","plantingMethod":"在温和气候中种植树苗。","mainOrigin":"中国（浙江省）、日本、韩国。"},"柿子":{"characteristics":"橙色、甜美、涩味果实。","plantingMethod":"在温和土壤中种植树苗。","mainOrigin":"中国（陕西省）、日本、韩国。"},"枣子":{"characteristics":"红色、甜脆、核果果实。","plantingMethod":"在干燥气候中嫁接树苗。","mainOrigin":"中国（新疆）、韩国、伊朗。"},"栗子":{"characteristics":"褐色壳、甜美坚果蔬菜。","plantingMethod":"在温和气候中种植树苗。","mainOrigin":"中国（安徽省）、韩国、意大利。"},"腰果":{"characteristics":"肾形、坚果果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"越南、印度、中国（海南省）。"},"杏仁":{"characteristics":"硬壳、内仁坚果。","plantingMethod":"在地中海气候中种植树。","mainOrigin":"美国、澳大利亚、中国（新疆）。"},"核桃":{"characteristics":"皱纹壳、脑形仁果实。","plantingMethod":"在温和气候中种植树苗。","mainOrigin":"中国（陕西省）、美国、伊朗。"},"开心果":{"characteristics":"绿色仁、裂壳坚果。","plantingMethod":"在干燥气候中种植树。","mainOrigin":"伊朗、美国、中国（新疆）。"},"松子":{"characteristics":"小粒、油质松树种子。","plantingMethod":"在寒冷气候中自然采集。","mainOrigin":"中国（黑龙江省）、俄罗斯、巴基斯坦。"},"莲子":{"characteristics":"白色、脆甜莲花种子。","plantingMethod":"在水中种植莲花。","mainOrigin":"中国（湖南省）、印度、越南。"},"花生":{"characteristics":"地下荚、油质豆类。","plantingMethod":"在温暖土壤中播种。","mainOrigin":"中国（山东省）、印度、尼日利亚。"},"芝麻":{"characteristics":"小粒、油质种子蔬菜。","plantingMethod":"在热带播种一年生植物。","mainOrigin":"印度、中国（河南省）、缅甸。"},"葵花籽":{"characteristics":"黑白壳、油质种子。","plantingMethod":"在阳光充足处播种向日葵。","mainOrigin":"俄罗斯、乌克兰、中国（内蒙古）。"},"薏米":{"characteristics":"白色粒、谷物类蔬菜。","plantingMethod":"在湿润土壤中播种。","mainOrigin":"中国（贵州省）、泰国、越南。"},"荞麦":{"characteristics":"三角粒、谷物蔬菜。","plantingMethod":"在凉爽气候中播种。","mainOrigin":"中国（山西省）、俄罗斯、乌克兰。"},"燕麦":{"characteristics":"扁平粒、纤维丰富谷物。","plantingMethod":"在温和土壤中播种。","mainOrigin":"俄罗斯、芬兰、中国（内蒙古）。"},"小米":{"characteristics":"小黄粒、耐旱谷物。","plantingMethod":"在干燥地区播种。","mainOrigin":"印度、中国（陕西省）、尼日尔。"},"高粱":{"characteristics":"红色粒、耐旱谷物蔬菜。","plantingMethod":"在温暖干燥土壤中播种。","mainOrigin":"美国、中国（辽宁省）、印度。"},"苜蓿":{"characteristics":"绿色叶、饲料类蔬菜。","plantingMethod":"在肥沃土壤中播种多年生植物。","mainOrigin":"美国、中国（甘肃省）、加拿大。"},"苕子":{"characteristics":"紫花、豆科蔬菜。","plantingMethod":"在凉爽气候中播种藤蔓。","mainOrigin":"中国（四川省）、印度、埃塞俄比亚。"},"芥菜":{"characteristics":"辛辣叶、绿色蔬菜。","plantingMethod":"在凉爽季节直接播种。","mainOrigin":"中国（广东省）、印度、日本。"},"油菜":{"characteristics":"黄色花、油籽蔬菜。","plantingMethod":"在温和土壤中播种。","mainOrigin":"中国（四川省）、加拿大、印度。"},"紫甘蓝":{"characteristics":"紫色叶球、抗氧化蔬菜。","plantingMethod":"在凉爽天气移栽幼苗。","mainOrigin":"中国（山东省）、印度、俄罗斯。"},"球葱":{"characteristics":"球形、温和味蔬菜。","plantingMethod":"在排水土壤中种植鳞茎。","mainOrigin":"中国（河北省）、法国、意大利。"},"甜椒":{"characteristics":"甜味、彩色铃铛蔬菜。","plantingMethod":"在温暖处育苗移栽。","mainOrigin":"中国（山东省）、墨西哥、西班牙。"},"茼蒿":{"characteristics":"芳香叶、绿色蔬菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"中国（江苏省）、日本、韩国。"},"马齿苋":{"characteristics":"多汁叶、Omega-3丰富蔬菜。","plantingMethod":"在温暖土壤中直接播种。","mainOrigin":"中国（河南省）、印度、希腊。"},"蒲公英":{"characteristics":"苦味叶、野生蔬菜。","plantingMethod":"在阳光处自然生长或播种。","mainOrigin":"中国（河北省）、美国、法国。"},"菊花菜":{"characteristics":"嫩叶、花状蔬菜。","plantingMethod":"在湿润环境中播种。","mainOrigin":"中国（广东省）、泰国、越南。"},"藜麦":{"characteristics":"粒状、蛋白质丰富伪谷物。","plantingMethod":"在高海拔干燥处播种。","mainOrigin":"秘鲁、玻利维亚、中国（青海省）。"},"芥蓝":{"characteristics":"厚茎、绿色叶蔬菜。","plantingMethod":"在温暖气候中播种。","mainOrigin":"中国（广东省）、泰国、马来西亚。"},"通菜":{"characteristics":"中空茎、水生蔬菜。","plantingMethod":"在水中扦插茎秆。","mainOrigin":"中国（广西省）、越南、泰国。"},"荠菜":{"characteristics":"小叶、野生春菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"中国（江苏省）、韩国、日本。"},"灰菜":{"characteristics":"灰绿叶、耐盐蔬菜。","plantingMethod":"在贫瘠土壤中播种。","mainOrigin":"中国（内蒙古）、俄罗斯、哈萨克斯坦。"},"蕨菜":{"characteristics":"卷曲嫩芽、野生蔬菜。","plantingMethod":"在潮湿林中自然采集。","mainOrigin":"中国（东北省）、日本、韩国。"},"鱼腥草":{"characteristics":"鱼腥味叶、药用蔬菜。","plantingMethod":"在湿润土壤中扦插。","mainOrigin":"中国（四川省）、越南、泰国。"},"折耳根":{"characteristics":"根茎、特殊风味蔬菜。","plantingMethod":"在凉爽处种植根茎。","mainOrigin":"中国（贵州省）、越南、缅甸。"},"豆角":{"characteristics":"长荚、绿色蔬菜。","plantingMethod":"在温暖藤蔓上播种。","mainOrigin":"中国（云南省）、印度、泰国。"},"荷兰豆":{"characteristics":"扁荚、甜脆蔬菜。","plantingMethod":"在凉爽季节播种攀援。","mainOrigin":"中国（浙江省）、肯尼亚、危地马拉。"},"甜玉米":{"characteristics":"甜粒、黄色蔬菜。","plantingMethod":"在温暖土壤中播种。","mainOrigin":"美国、中国（吉林省）、巴西。"},"糯玉米":{"characteristics":"粘性粒、白色蔬菜。","plantingMethod":"在热带播种特殊品种。","mainOrigin":"中国（广东省）、泰国、越南。"},"笋瓜":{"characteristics":"绿色、细长藤果蔬菜。","plantingMethod":"在阳光处播种藤蔓。","mainOrigin":"中国（山东省）、印度、土耳其。"},"节瓜":{"characteristics":"短胖、嫩瓜蔬菜。","plantingMethod":"在温暖气候中种植藤蔓。","mainOrigin":"中国（广东省）、越南、菲律宾。"},"瓠瓜":{"characteristics":"长形、白皮蔬菜。","plantingMethod":"在热带从种子藤蔓。","mainOrigin":"中国（浙江省）、印度、泰国。"},"佛手瓜":{"characteristics":"梨形、皱纹蔬菜。","plantingMethod":"在温和处种植藤蔓。","mainOrigin":"墨西哥、中国（云南省）、巴西。"},"刺瓜":{"characteristics":"刺皮、绿色蔬菜。","plantingMethod":"在热带播种藤蔓。","mainOrigin":"中国（广西省）、印度、斯里兰卡。"},"罗汉果":{"characteristics":"甜味、圆形果实蔬菜。","plantingMethod":"在亚热带种植藤蔓。","mainOrigin":"中国（广西省）、泰国、越南。"},"枸杞":{"characteristics":"红色小果、药用蔬菜。","plantingMethod":"在干燥土壤中种植灌木。","mainOrigin":"中国（宁夏）、蒙古、俄罗斯。"},"人参果":{"characteristics":"黄色、甜瓜味果实。","plantingMethod":"在温和气候中种植树苗。","mainOrigin":"中国（云南省）、新西兰、智利。"},"沙棘":{"characteristics":"橙色小果、维生素丰富。","plantingMethod":"在寒冷干燥处种植灌木。","mainOrigin":"中国（内蒙古）、俄罗斯、芬兰。"},"刺梨":{"characteristics":"黄色、多刺果实。","plantingMethod":"在山区种植灌木。","mainOrigin":"中国（贵州省）、越南、缅甸。"},"树莓":{"characteristics":"红色、多粒果实。","plantingMethod":"在凉爽处种植灌木。","mainOrigin":"俄罗斯、中国（辽宁省）、塞尔维亚。"},"金橘":{"characteristics":"小橙、酸甜果实。","plantingMethod":"在亚热带种植树苗。","mainOrigin":"中国（广东省）、日本、巴西。"},"柚子":{"characteristics":"大型、酸甜柑橘果实。","plantingMethod":"在热带从种子或嫁接。","mainOrigin":"中国（广东省）、越南、南非。"},"脐橙":{"characteristics":"无籽、甜橙果实。","plantingMethod":"在亚热带种植树苗。","mainOrigin":"巴西、美国、中国（江西省）。"},"血橙":{"characteristics":"红色肉、酸甜果实。","plantingMethod":"在温和气候中嫁接。","mainOrigin":"意大利、中国（四川省）、西班牙。"},"丑橘":{"characteristics":"皱皮、甜美果实。","plantingMethod":"在亚热带种植树苗。","mainOrigin":"中国（四川省）、日本、韩国。"},"沃柑":{"characteristics":"橙色、晚熟甜果。","plantingMethod":"在温暖处嫁接树苗。","mainOrigin":"中国（广西省）、泰国、越南。"},"桔子":{"characteristics":"小巧、易剥皮果实。","plantingMethod":"在亚热带从种子种植。","mainOrigin":"中国（浙江省）、西班牙、巴西。"},"杨桃":{"characteristics":"星形、酸甜果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"马来西亚、中国（广东省）、印度。"},"莲雾":{"characteristics":"铃铛形、水润果实。","plantingMethod":"在热带从种子种植。","mainOrigin":"中国（台湾省）、泰国、印尼。"},"番石榴":{"characteristics":"绿色皮、白肉果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"印度、中国（广东省）、墨西哥。"},"人心果":{"characteristics":"心形、甜美果实。","plantingMethod":"在热带从种子种植。","mainOrigin":"中国（海南省）、泰国、越南。"},"神秘果":{"characteristics":"红色、变酸为甜果实。","plantingMethod":"在热带种植灌木。","mainOrigin":"中国（广东省）、加纳、尼日利亚。"},"蛇皮果":{"characteristics":"鳞皮、酸甜果实。","plantingMethod":"在热带种植棕榈树。","mainOrigin":"印尼、中国（云南省）、泰国。"},"诺丽果":{"characteristics":"臭味、多汁果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"波利尼西亚、中国（海南省）、澳大利亚。"},"牛油果":{"characteristics":"奶油质、绿色果肉。","plantingMethod":"在热带嫁接树苗。","mainOrigin":"墨西哥、中国（云南省）、秘鲁。"},"奇异果":{"characteristics":"绿色肉、酸甜果实。","plantingMethod":"在温和处种植藤蔓。","mainOrigin":"中国（陕西省）、新西兰、意大利。"},"红毛丹":{"characteristics":"毛皮、白肉果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"泰国、中国（海南省）、印尼。"},"释迦果":{"characteristics":"鳞皮、奶油味果实。","plantingMethod":"在热带从种子种植。","mainOrigin":"中国（广东省）、印度、菲律宾。"},"蛋黄果":{"characteristics":"黄色、蛋黄味果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"巴西、中国（云南省）、哥伦比亚。"},"巴西莓":{"characteristics":"紫色小果、抗氧化。","plantingMethod":"在热带种植棕榈树。","mainOrigin":"巴西、中国（海南省）、秘鲁。"},"针叶樱桃":{"characteristics":"红色小果、维生素C丰富。","plantingMethod":"在热带种植灌木。","mainOrigin":"巴西、中国（广东省）、墨西哥。"},"嘉宝果":{"characteristics":"紫色、树生果实。","plantingMethod":"在亚热带种植树苗。","mainOrigin":"巴西、中国（台湾省）、澳大利亚。"},"香瓜":{"characteristics":"甜香、多汁圆果。","plantingMethod":"在温暖土壤中播种藤蔓。","mainOrigin":"中国（新疆）、土耳其、伊朗。"},"羊奶果":{"characteristics":"白色、奶味果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"中国（云南省）、泰国、越南。"},"面包果":{"characteristics":"大型、淀粉质果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"波利尼西亚、中国（海南省）、菲律宾。"},"诺尼":{"characteristics":"臭果、药用果实。","plantingMethod":"在热带种植树苗。","mainOrigin":"波利尼西亚、中国（海南省）、印度。"},"橄榄瓜":{"characteristics":"绿色、橄榄形蔬菜。","plantingMethod":"在温暖处播种藤蔓。","mainOrigin":"中国（广西省）、印度、泰国。"},"茭白":{"characteristics":"白色嫩茎、水生蔬菜。","plantingMethod":"在水中种植禾本科。","mainOrigin":"中国（江苏省）、越南、泰国。"},"菱角":{"characteristics":"角形、水果蔬菜。","plantingMethod":"在水中种植浮叶植物。","mainOrigin":"中国（湖南省）、印度、越南。"},"慈菇":{"characteristics":"球根、水生蔬菜。","plantingMethod":"在湿地种植块茎。","mainOrigin":"中国（浙江省）、日本、韩国。"},"荸荠":{"characteristics":"脆甜、球根蔬菜。","plantingMethod":"在水中种植块茎。","mainOrigin":"中国（广西省）、印度、越南。"},"茨菇":{"characteristics":"箭头叶、水生蔬菜。","plantingMethod":"在浅水中种植块茎。","mainOrigin":"中国（湖北省）、日本、泰国。"},"马铃薯":{"characteristics":"块茎、淀粉质蔬菜。","plantingMethod":"在垄沟中种植块茎。","mainOrigin":"中国（内蒙古）、印度、俄罗斯。"},"魔芋":{"characteristics":"胶质块茎、低卡蔬菜。","plantingMethod":"在湿润土壤中种植球茎。","mainOrigin":"中国（四川省）、日本、韩国。"},"牛蒡":{"characteristics":"长根、纤维丰富蔬菜。","plantingMethod":"在深土中播种。","mainOrigin":"中国（山东省）、日本、韩国。"},"菊芋":{"characteristics":"块茎、甜味蔬菜。","plantingMethod":"在阳光处种植块茎。","mainOrigin":"中国（河北省）、法国、美国。"},"竹荪":{"characteristics":"网状、真菌蔬菜。","plantingMethod":"在竹林中培养孢子。","mainOrigin":"中国（云南省）、泰国、越南。"},"平菇":{"characteristics":"灰色伞、真菌蔬菜。","plantingMethod":"在稻草上培养孢子。","mainOrigin":"中国（河南省）、韩国、日本。"},"姬菇":{"characteristics":"小簇、真菌蔬菜。","plantingMethod":"在黑暗中培养。","mainOrigin":"中国（福建省）、日本、泰国。"},"鸡枞":{"characteristics":"鸡肉味、真菌蔬菜。","plantingMethod":"在白蚁巢附近采集。","mainOrigin":"中国（云南省）、泰国、缅甸。"},"松茸":{"characteristics":"芳香、真菌蔬菜。","plantingMethod":"在松林中自然生长。","mainOrigin":"中国（云南省）、日本、韩国。"},"羊肚菌":{"characteristics":"蜂窝状、真菌蔬菜。","plantingMethod":"在凉爽处人工栽培。","mainOrigin":"中国（四川省）、法国、土耳其。"},"黑木耳":{"characteristics":"黑色胶质、真菌蔬菜。","plantingMethod":"在木头上培养。","mainOrigin":"中国（黑龙江省）、泰国、越南。"},"白灵菇":{"characteristics":"白色大伞、真菌蔬菜。","plantingMethod":"在培养基上栽培。","mainOrigin":"中国（河北省）、日本、韩国。"},"杏鲍菇":{"characteristics":"肉厚、真菌蔬菜。","plantingMethod":"在瓶中培养孢子。","mainOrigin":"中国（福建省）、韩国、日本。"},"猴头菇":{"characteristics":"毛球状、真菌蔬菜。","plantingMethod":"在木屑上培养。","mainOrigin":"中国（吉林省）、日本、韩国。"},"茶树菇":{"characteristics":"细长柄、真菌蔬菜。","plantingMethod":"在茶树下栽培。","mainOrigin":"中国（江西省）、泰国、越南。"},"姬松茸":{"characteristics":"伞状、营养真菌。","plantingMethod":"在草地上培养。","mainOrigin":"中国（云南省）、巴西、日本。"},"灰树花":{"characteristics":"灰色花状、真菌蔬菜。","plantingMethod":"在硬木上培养。","mainOrigin":"中国（浙江省）、日本、韩国。"},"滑子菇":{"characteristics":"滑腻、真菌蔬菜。","plantingMethod":"在稻草上培养。","mainOrigin":"中国（江苏省）、日本、泰国。"},"草菇":{"characteristics":"草生、真菌蔬菜。","plantingMethod":"在稻草堆中培养。","mainOrigin":"中国（广东省）、泰国、越南。"},"秀珍菇":{"characteristics":"小巧、真菌蔬菜。","plantingMethod":"在瓶中栽培孢子。","mainOrigin":"中国（福建省）、韩国、日本。"},"榆黄菇":{"characteristics":"黄色簇生、真菌蔬菜。","plantingMethod":"在榆木上培养。","mainOrigin":"中国（山西省）、俄罗斯、韩国。"},"双孢菇":{"characteristics":"白色伞、真菌蔬菜。","plantingMethod":"在堆肥中培养。","mainOrigin":"中国（河北省）、美国、荷兰。"},"牛肝菌":{"characteristics":"肉厚、真菌蔬菜。","plantingMethod":"在松林中自然采集。","mainOrigin":"中国（云南省）、意大利、法国。"},"灵芝":{"characteristics":"硬质、药用真菌。","plantingMethod":"在木头上人工栽培。","mainOrigin":"中国（安徽省）、韩国、日本。"},"云芝":{"characteristics":"彩色层状、真菌蔬菜。","plantingMethod":"在树干上培养。","mainOrigin":"中国（广东省）、日本、泰国。"},"紫薯":{"characteristics":"紫色肉、甜美抗氧化块茎。","plantingMethod":"在温暖土壤中种植藤蔓。","mainOrigin":"中国（海南省）、日本、韩国。"},"紫玉米":{"characteristics":"紫色粒、抗氧化谷物。","plantingMethod":"在温暖处直接播种。","mainOrigin":"中国（云南省）、秘鲁、墨西哥。"},"黑枸杞":{"characteristics":"黑色小果、营养丰富。","plantingMethod":"在干燥土壤中种植灌木。","mainOrigin":"中国（青海省）、蒙古、俄罗斯。"},"黑番茄":{"characteristics":"黑色皮、抗氧化果蔬。","plantingMethod":"室内育苗移栽阳光处。","mainOrigin":"中国（山东省）、美国、俄罗斯。"},"白萝卜":{"characteristics":"白色、脆辣根茎蔬菜。","plantingMethod":"直接播种在肥沃土壤。","mainOrigin":"中国（河北省）、日本、韩国。"},"红萝卜":{"characteristics":"红色、甜脆根茎蔬菜。","plantingMethod":"在松散土壤中播种。","mainOrigin":"中国（河南省）、印度、土耳其。"},"樱桃萝卜":{"characteristics":"小红球、脆嫩蔬菜。","plantingMethod":"在凉爽天气中播种。","mainOrigin":"中国（江苏省）、法国、意大利。"},"心里美萝卜":{"characteristics":"绿皮红心、甜脆蔬菜。","plantingMethod":"直接播种在凉爽土壤。","mainOrigin":"中国（山东省）、日本、韩国。"},"水萝卜":{"characteristics":"多汁、白色根茎蔬菜。","plantingMethod":"在湿润土壤中播种。","mainOrigin":"中国（浙江省）、越南、泰国。"},"苦菊":{"characteristics":"苦味、卷叶蔬菜。","plantingMethod":"在凉爽处直接播种。","mainOrigin":"中国（河北省）、意大利、法国。"},"罗马生菜":{"characteristics":"长叶、脆爽沙拉蔬菜。","plantingMethod":"在半阴处播种幼苗。","mainOrigin":"中国（四川省）、美国、西班牙。"},"冰草":{"characteristics":"晶莹叶、盐味蔬菜。","plantingMethod":"在干燥土壤中播种。","mainOrigin":"中国（新疆）、南非、澳大利亚。"},"芝麻菜":{"characteristics":"胡椒味、绿色叶蔬菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"中国（江苏省）、意大利、土耳其。"},"西芹":{"characteristics":"粗茎、芳香蔬菜。","plantingMethod":"在凉爽天气中移栽。","mainOrigin":"中国（山东省）、美国、墨西哥。"},"香芹":{"characteristics":"细叶、强烈香味蔬菜。","plantingMethod":"在温和土壤中播种。","mainOrigin":"中国（安徽省）、土耳其、埃及。"},"茴香茎":{"characteristics":"球茎、甜香蔬菜。","plantingMethod":"在温和气候中播种。","mainOrigin":"中国（浙江省）、意大利、埃及。"},"芥末":{"characteristics":"辛辣叶、调味蔬菜。","plantingMethod":"在凉爽处直接播种。","mainOrigin":"中国（四川省）、日本、加拿大。"},"紫背天葵":{"characteristics":"紫叶、抗氧化蔬菜。","plantingMethod":"在湿润环境中播种。","mainOrigin":"中国（广东省）、泰国、越南。"},"木薯":{"characteristics":"淀粉质、长根块茎。","plantingMethod":"在热带种植茎秆。","mainOrigin":"尼日利亚、中国（广西省）、泰国。"},"紫薯叶":{"characteristics":"紫色叶、营养蔬菜。","plantingMethod":"在温暖土壤中种植藤蔓。","mainOrigin":"中国（海南省）、日本、菲律宾。"},"甜椒":{"characteristics":"甜味、多色铃铛蔬菜。","plantingMethod":"在温暖处育苗移栽。","mainOrigin":"中国（山东省）、墨西哥、西班牙。"},"朝天椒":{"characteristics":"小辣、向上生蔬菜。","plantingMethod":"在热带播种灌木。","mainOrigin":"中国（湖南省）、印度、泰国。"},"青椒":{"characteristics":"绿色、脆嫩铃铛蔬菜。","plantingMethod":"在温暖气候中移栽。","mainOrigin":"中国（河北省）、土耳其、墨西哥。"},"灯笼椒":{"characteristics":"黄色、甜辣蔬菜。","plantingMethod":"在阳光充足处播种。","mainOrigin":"中国（云南省）、匈牙利、西班牙。"},"指天椒":{"characteristics":"细长、极辣蔬菜。","plantingMethod":"在热带种植灌木。","mainOrigin":"中国（广西省）、泰国、印度。"},"藕带":{"characteristics":"嫩藕、脆爽水生蔬菜。","plantingMethod":"在水中种植莲藕。","mainOrigin":"中国（湖北省）、越南、印度。"},"茭白笋":{"characteristics":"白色嫩笋、水生蔬菜。","plantingMethod":"在浅水中种植。","mainOrigin":"中国（江苏省）、泰国、越南。"},"荔浦芋":{"characteristics":"大块、香糯块茎。","plantingMethod":"在湿润土壤中种植块茎。","mainOrigin":"中国（广西省）、泰国、菲律宾。"},"槟榔芋":{"characteristics":"紫纹、淀粉质块茎。","plantingMethod":"在热带种植块茎。","mainOrigin":"中国（海南省）、马来西亚、印尼。"},"慈菇":{"characteristics":"小球根、水生蔬菜。","plantingMethod":"在湿地种植块茎。","mainOrigin":"中国（浙江省）、日本、韩国。"},"刺老包":{"characteristics":"刺茎、野生蔬菜。","plantingMethod":"在林中自然生长。","mainOrigin":"中国（云南省）、泰国、缅甸。"},"鱼香菜":{"characteristics":"鱼腥味、叶茎蔬菜。","plantingMethod":"在湿润处扦插。","mainOrigin":"中国（四川省）、越南、泰国。"},"灰条菜":{"characteristics":"灰绿叶、耐旱蔬菜。","plantingMethod":"在贫瘠土壤中播种。","mainOrigin":"中国（内蒙古）、俄罗斯、哈萨克斯坦。"},"马兰头":{"characteristics":"嫩叶、野生春菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"中国（江苏省）、韩国、日本。"},"枸杞叶":{"characteristics":"绿色叶、营养蔬菜。","plantingMethod":"在干燥处种植灌木。","mainOrigin":"中国（宁夏）、蒙古、俄罗斯。"},"桑叶":{"characteristics":"绿色叶、丝蚕饲料蔬菜。","plantingMethod":"在温和气候中种植树。","mainOrigin":"中国（江苏省）、印度、日本。"},"葡萄叶":{"characteristics":"大叶、包裹用蔬菜。","plantingMethod":"在排水土壤中种植藤蔓。","mainOrigin":"中国（新疆）、土耳其、希腊。"},"甜菜叶":{"characteristics":"红色茎叶、营养蔬菜。","plantingMethod":"在松散土壤中播种。","mainOrigin":"中国（内蒙古）、俄罗斯、法国。"},"萝卜叶":{"characteristics":"绿色叶、脆嫩蔬菜。","plantingMethod":"在肥沃土壤中播种根茎。","mainOrigin":"中国（山东省）、日本、韩国。"},"胡萝卜叶":{"characteristics":"羽状叶、芳香蔬菜。","plantingMethod":"在松散土壤中播种。","mainOrigin":"中国（河南省）、美国、俄罗斯。"},"橄榄菜":{"characteristics":"腌制叶、咸香蔬菜。","plantingMethod":"在地中海气候中种植树。","mainOrigin":"中国（广东省）、西班牙、意大利。"},"酸模":{"characteristics":"酸味叶、绿色蔬菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"中国（河北省）、法国、俄罗斯。"},"苔菜":{"characteristics":"卷叶、苦甜蔬菜。","plantingMethod":"在湿润环境中播种。","mainOrigin":"中国（广东省）、泰国、越南。"},"荆芥":{"characteristics":"芳香叶、调味蔬菜。","plantingMethod":"在阳光充足处播种。","mainOrigin":"中国（安徽省）、印度、泰国。"},"鼠尾草":{"characteristics":"灰绿叶、香料蔬菜。","plantingMethod":"在干燥土壤中扦插。","mainOrigin":"中国（云南省）、意大利、土耳其。"},"迷迭香":{"characteristics":"针叶、强烈香蔬菜。","plantingMethod":"在温和气候中扦插。","mainOrigin":"中国（四川省）、法国、西班牙。"},"百里香":{"characteristics":"小叶、芳香调味蔬菜。","plantingMethod":"在排水良好土壤中播种。","mainOrigin":"中国（浙江省）、土耳其、埃及。"},"牛至":{"characteristics":"辣香叶、披萨调味蔬菜。","plantingMethod":"在温暖处播种。","mainOrigin":"中国（河北省）、意大利、希腊。"},"龙蒿":{"characteristics":"细叶、茴香味蔬菜。","plantingMethod":"在凉爽土壤中扦插。","mainOrigin":"中国（内蒙古）、法国、俄罗斯。"},"薰衣草":{"characteristics":"紫花、芳香叶蔬菜。","plantingMethod":"在干燥阳光处种植。","mainOrigin":"中国（新疆）、法国、英国。"},"柑橘叶":{"characteristics":"绿色叶、柑橘香蔬菜。","plantingMethod":"在亚热带种植树苗。","mainOrigin":"中国（湖南省）、巴西、美国。"},"咖喱叶":{"characteristics":"芳香叶、印度调味蔬菜。","plantingMethod":"在热带种植树苗。","mainOrigin":"中国（云南省）、印度、斯里兰卡。"},"香茅":{"characteristics":"长叶、柠檬香蔬菜。","plantingMethod":"在湿热环境中种植。","mainOrigin":"中国（广西省）、泰国、印尼。"},"柠檬草":{"characteristics":"纤细叶、柠檬味蔬菜。","plantingMethod":"在热带扦插丛生。","mainOrigin":"中国（广东省）、泰国、越南。"},"九层塔":{"characteristics":"紫茎、甜香叶蔬菜。","plantingMethod":"在温暖土壤中播种。","mainOrigin":"中国（台湾省）、泰国、越南。"},"紫锥菊":{"characteristics":"紫花叶、药用蔬菜。","plantingMethod":"在阳光充足处播种。","mainOrigin":"中国（山东省）、美国、加拿大。"},"金银花":{"characteristics":"黄色花、药用蔬菜。","plantingMethod":"在温和气候中种植藤蔓。","mainOrigin":"中国（河南省）、韩国、日本。"},"蒲公英根":{"characteristics":"苦根、药用蔬菜。","plantingMethod":"在阳光处自然生长。","mainOrigin":"中国（河北省）、法国、美国。"},"决明子":{"characteristics":"种子、药用蔬菜。","plantingMethod":"在温暖土壤中播种。","mainOrigin":"中国（安徽省）、印度、埃及。"},"黄瓜藤":{"characteristics":"嫩藤、多汁蔬菜。","plantingMethod":"在温暖处播种藤蔓。","mainOrigin":"中国（山东省）、俄罗斯、土耳其。"},"南瓜叶":{"characteristics":"大叶、毛茸蔬菜。","plantingMethod":"在阳光充足处种植藤蔓。","mainOrigin":"中国（山东省）、印度、俄罗斯。"},"丝瓜叶":{"characteristics":"心形叶、嫩菜蔬菜。","plantingMethod":"在温暖气候中种植藤蔓。","mainOrigin":"中国（浙江省）、印度、越南。"},"苦瓜叶":{"characteristics":"掌状叶、苦味蔬菜。","plantingMethod":"在热带种植藤蔓。","mainOrigin":"中国（广西省）、印度、菲律宾。"},"豆瓣菜":{"characteristics":"圆叶、水生蔬菜。","plantingMethod":"在水中扦插。","mainOrigin":"中国（广东省）、泰国、越南。"},"水芹":{"characteristics":"水生茎叶、芳香蔬菜。","plantingMethod":"在浅水中种植。","mainOrigin":"中国（江苏省）、越南、泰国。"},"菱白":{"characteristics":"菱形叶、水生蔬菜。","plantingMethod":"在水中种植浮叶。","mainOrigin":"中国（湖南省）、印度、越南。"},"芡实":{"characteristics":"种子、水生蔬菜。","plantingMethod":"在水中种植莲科植物。","mainOrigin":"中国（江苏省）、印度、越南。"},"野蒜":{"characteristics":"葱味叶、野生蔬菜。","plantingMethod":"在凉爽土壤中自然生长。","mainOrigin":"中国（东北省）、俄罗斯、韩国。"},"山葱":{"characteristics":"细长叶、山地蔬菜。","plantingMethod":"在山区播种或分株。","mainOrigin":"中国（云南省）、日本、韩国。"},"野韭":{"characteristics":"扁叶、野生葱味蔬菜。","plantingMethod":"在肥沃土壤中自然生长。","mainOrigin":"中国（河北省）、土耳其、埃及。"},"竹叶菜":{"characteristics":"细叶、嫩脆蔬菜。","plantingMethod":"在竹林下播种。","mainOrigin":"中国（浙江省）、日本、泰国。"},"松菜":{"characteristics":"绿色叶、营养蔬菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"中国（上海市）、日本、韩国。"},"油麦菜":{"characteristics":"油绿叶、脆嫩蔬菜。","plantingMethod":"在半阴处直接播种。","mainOrigin":"中国（广东省）、泰国、越南。"},"娃娃菜":{"characteristics":"小型白菜、嫩叶蔬菜。","plantingMethod":"在凉爽天气中移栽。","mainOrigin":"中国（山东省）、韩国、日本。"},"青梗菜":{"characteristics":"绿茎、白菜类蔬菜。","plantingMethod":"在湿润土壤中播种。","mainOrigin":"中国（江苏省）、泰国、越南。"},"奶白菜":{"characteristics":"白色茎、嫩菜蔬菜。","plantingMethod":"在凉爽处移栽幼苗。","mainOrigin":"中国（四川省）、日本、韩国。"},"鸡毛菜":{"characteristics":"小叶、速生蔬菜。","plantingMethod":"在肥沃土壤中播种。","mainOrigin":"中国（浙江省）、泰国、越南。"},"苤蓝":{"characteristics":"球茎、脆爽蔬菜。","plantingMethod":"在凉爽天气中播种。","mainOrigin":"中国（山东省）、德国、荷兰。"},"球茎芹菜":{"characteristics":"球根、芳香蔬菜。","plantingMethod":"在凉爽土壤中移栽。","mainOrigin":"中国（河北省）、法国、意大利。"},"欧洲防风草":{"characteristics":"长根、甜味蔬菜。","plantingMethod":"在深土中播种。","mainOrigin":"中国（内蒙古）、法国、英国。"},"欧洲萝卜":{"characteristics":"长白根、辣味蔬菜。","plantingMethod":"在松散土壤中播种。","mainOrigin":"中国（河南省）、德国、波兰。"},"欧洲甜菜":{"characteristics":"红根、糖质蔬菜。","plantingMethod":"直接播种在肥沃土。","mainOrigin":"中国（内蒙古）、俄罗斯、法国。"},"球葱":{"characteristics":"小球根、温和味蔬菜。","plantingMethod":"在排水土壤中种植。","mainOrigin":"中国（河北省）、法国、意大利。"},"珠葱":{"characteristics":"小葱球、多层蔬菜。","plantingMethod":"在凉爽处种植鳞茎。","mainOrigin":"中国（山东省）、泰国、越南。"},"分葱":{"characteristics":"分枝茎、葱味蔬菜。","plantingMethod":"在肥沃土壤中分株。","mainOrigin":"中国（广东省）、日本、韩国。"},"京葱":{"characteristics":"长白茎、甜葱蔬菜。","plantingMethod":"在垄沟中种植。","mainOrigin":"中国（北京市）、日本、韩国。"},"韭黄":{"characteristics":"黄色叶、嫩葱味蔬菜。","plantingMethod":"在黑暗中软化栽培。","mainOrigin":"中国（河北省）、韩国、日本。"},"蒜黄":{"characteristics":"黄色茎、蒜味蔬菜。","plantingMethod":"在无光处栽培蒜瓣。","mainOrigin":"中国（山东省）、韩国、日本。"},"葱苗":{"characteristics":"绿色嫩苗、芳香蔬菜。","plantingMethod":"在凉爽土壤中播种。","mainOrigin":"中国（江苏省）、泰国、越南。"},"姜芽":{"characteristics":"嫩芽、辛辣蔬菜。","plantingMethod":"在温暖处发芽根茎。","mainOrigin":"中国（山东省）、印度、印尼。"},"豆薯":{"characteristics":"脆甜块茎、豆科蔬菜。","plantingMethod":"在温暖土壤中种植藤蔓。","mainOrigin":"中国（云南省）、墨西哥、菲律宾。"},"葛根":{"characteristics":"长根、药用蔬菜。","plantingMethod":"在山区种植藤蔓。","mainOrigin":"中国（广西省）、日本、韩国。"},"淮山":{"characteristics":"白色块茎、滋补蔬菜。","plantingMethod":"在湿润土壤中种植藤蔓。","mainOrigin":"中国（河南省）、日本、韩国。"},"铁棍山药":{"characteristics":"细长、铁锈色块茎。","plantingMethod":"在深土中种植藤蔓。","mainOrigin":"中国（河南省）、日本、韩国。"},"紫淮山":{"characteristics":"紫色肉、营养块茎。","plantingMethod":"在温暖处种植藤蔓。","mainOrigin":"中国（广西省）、日本、菲律宾。"},"玉竹":{"characteristics":"根茎、药用甜蔬菜。","plantingMethod":"在阴凉土壤中种植。","mainOrigin":"中国（四川省）、韩国、日本。"},"黄精":{"characteristics":"块根、滋补蔬菜。","plantingMethod":"在湿润林中种植。","mainOrigin":"中国（安徽省）、韩国、日本。"},"百合":{"characteristics":"鳞茎、甜脆蔬菜。","plantingMethod":"在排水土壤中种植球根。","mainOrigin":"中国（甘肃省）、日本、荷兰。"},"天门冬":{"characteristics":"根茎、药用蔬菜。","plantingMethod":"在凉爽处种植藤蔓。","mainOrigin":"中国（贵州省）、印度、尼泊尔。"},"石刁柏":{"characteristics":"嫩茎、绿色营养蔬菜。","plantingMethod":"在排水良好土壤中种植冠芽。","mainOrigin":"中国（山东省）、秘鲁、墨西哥。"}};
+                const searchInput = document.getElementById('product-search-input');
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        performProductSearch();
+                    }
+                });
+                searchInput.addEventListener('blur', performProductSearch);
+
+                performProductSearch = function() {  // 赋值给全局变量
+                    const query = searchInput.value.trim();
+                    if (!query) {
+                        resetProductResults();
+                        return;
+                    }
+                    if (fruitsAndVegs.hasOwnProperty(query)) {
+                        const info = fruitsAndVegs[query];
+                        document.getElementById('product-characteristics').textContent = info.characteristics;
+                        document.getElementById('product-planting-method').textContent = info.plantingMethod;
+                        document.getElementById('product-main-origin').textContent = info.mainOrigin;
+                    } else {
+                        document.getElementById('product-characteristics').textContent = '请输入中文的蔬菜或者水果';
+                        document.getElementById('product-planting-method').textContent = '请输入中文的蔬菜或者水果';
+                        document.getElementById('product-main-origin').textContent = '请输入中文的蔬菜或者水果';
+                    }
+                };
+
+                function resetProductResults() {
+                    document.getElementById('product-characteristics').textContent = '请输入蔬菜或者水果';
+                    document.getElementById('product-planting-method').textContent = '请输入蔬菜或者水果';
+                    document.getElementById('product-main-origin').textContent = '请输入蔬菜或者水果';
+                }
+
+                // 初始搜索
+                performProductSearch();
+            }
+
+            // 初始化农户信息
+            function initFarmerInfo() {
+                const farmers = [{"name":"王林","qualification":"果农","plant":"苹果","origin":"中国山东","time":"需要提前半年预约","phone":"123456789"},{"name":"张新","qualification":"菜农","plant":"上海青","origin":"中国上海","time":"需要提前三月预约","phone":"145637895"},{"name":"赵微染","qualification":"果农","plant":"樱桃","origin":"中国山东","time":"需要提前一年预约","phone":"745896152"},{"name":"王潇","qualification":"菜农","plant":"蘑菇","origin":"中国云南","time":"需要提前三月预约","phone":"148567456"},{"name":"司马楠","qualification":"果农","plant":"香蕉","origin":"中国海南","time":"需要提前三月预约","phone":"185646589"},{"name":"傅首息","qualification":"菜农","plant":"山药","origin":"中国山东","time":"需要提前一年预约","phone":"175822248"},{"name":"言露","qualification":"果农","plant":"火龙果","origin":"中国福建","time":"需要提前一年预约","phone":"784214568"},{"name":"王潇","qualification":"菜农","plant":"马铃薯","origin":"中国四川","time":"需要提前一年预约","phone":"783456149"}];
+                const farmerList = document.getElementById('farmer-list');
+                farmers.forEach(farmer => {
+                    const card = document.createElement('div');
+                    card.className = 'feature-card';
+                    card.innerHTML = `
+                        <div class="feature-icon">👨‍🌾</div>
+                        <div class="feature-title">${farmer.name}</div>
+                        <div class="feature-desc">
+                            资质：${farmer.qualification}<br>
+                            种植植物：${farmer.plant}<br>
+                            产地：${farmer.origin}<br>
+                            时间：${farmer.time}<br>
+                            联系电话：${farmer.phone}
+                        </div>
+                    `;
+                    farmerList.appendChild(card);
+                });
+            }
+
+            // 初始化需求发布
+            function initDemand() {
+                const publishBtn = document.getElementById('publish-btn');
+                const demandInput = document.getElementById('demand-input');
+                const demandList = document.getElementById('demand-list');
+
+                let demands = JSON.parse(localStorage.getItem('demands')) || [];
+
+                function renderDemands() {
+                    demandList.innerHTML = '';
+                    demands.forEach((demand, index) => {
+                        const div = document.createElement('div');
+                        div.textContent = demand;
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = '删除';
+                        deleteBtn.onclick = () => {
+                            demands.splice(index, 1);
+                            localStorage.setItem('demands', JSON.stringify(demands));
+                            renderDemands();
+                        };
+                        div.appendChild(deleteBtn);
+                        demandList.appendChild(div);
+                    });
+                }
+
+                publishBtn.addEventListener('click', () => {
+                    const content = demandInput.value.trim();
+                    if (content) {
+                        demands.push(content);
+                        localStorage.setItem('demands', JSON.stringify(demands));
+                        demandInput.value = '';
+                        renderDemands();
+                    }
+                });
+
+                renderDemands();
+            }
+
+            // 初始化物流查询
+            function initLogistics() {
+                const confirmBtns = document.querySelectorAll('#waybill-query-sub .confirm-btn');
+                const waybillInputs = document.querySelectorAll('#waybill-query-sub .waybill-input');
+                const urlOutputs = document.querySelectorAll('#waybill-query-sub .url-output');
+                const historyList = document.getElementById('history-list');
+
+                let history = JSON.parse(localStorage.getItem('waybillHistory')) || [];
+
+                confirmBtns.forEach((btn, index) => {
+                    btn.addEventListener('click', () => {
+                        const num = waybillInputs[index].value.trim();
+                        if (num) {
+                            const url = `https://m.ickd.cn/result.html#no=${num}&com=auto`;
+                            urlOutputs[index].innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
+                            if (!history.includes(num)) {
+                                history.push(num);
+                                localStorage.setItem('waybillHistory', JSON.stringify(history));
+                                renderHistory();
+                            }
+                        }
+                    });
+                });
+
+                function renderHistory() {
+                    historyList.innerHTML = '';
+                    if (history.length === 0) {
+                        historyList.textContent = '暂无数据';
+                    } else {
+                        history.forEach((num, index) => {
+                            const item = document.createElement('div');
+                            item.className = 'history-item';
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.value = num;
+                            input.readOnly = true;
+                            item.appendChild(input);
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.textContent = '删除';
+                            deleteBtn.onclick = () => {
+                                history.splice(index, 1);
+                                localStorage.setItem('waybillHistory', JSON.stringify(history));
+                                renderHistory();
+                            };
+                            item.appendChild(deleteBtn);
+                            historyList.appendChild(item);
+                        });
+                    }
+                }
+
+                renderHistory();
+            }
+
+            // 初始化用户设置
+            function initUserSettings() {
+                const userData = JSON.parse(localStorage.getItem('userData')) || {};
+                // 设置头像
+                const avatar = document.getElementById('user-avatar');
+                if (userData.avatar) {
+                    avatar.src = userData.avatar;
+                }
+                // 设置昵称
+                if (userData.nickname) {
+                    document.getElementById('nickname').value = userData.nickname;
+                }
+                // 设置邮箱
+                if (userData.email) {
+                    document.getElementById('email').value = userData.email;
+                }
+                // 设置手机号
+                if (userData.phone) {
+                    document.getElementById('phone').value = userData.phone;
+                }
+                // 设置密码
+                if (userData.password) {
+                    document.getElementById('password').value = userData.password;
+                }
+                // 头像上传功能
+                const avatarUploadBtn = document.getElementById('avatar-upload-btn');
+                const avatarUpload = document.getElementById('avatar-upload');
+                avatarUploadBtn.addEventListener('click', function() {
+                    avatarUpload.click();
+                });
+                avatarUpload.addEventListener('change', function(e) {
+                    if (e.target.files.length > 0) {
+                        const file = e.target.files[0];
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            avatar.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+                // 保存设置
+                const saveBtn = document.getElementById('save-settings');
+                const errorElement = document.getElementById('user-error');
+                const successElement = document.getElementById('user-success');
+                saveBtn.addEventListener('click', function() {
+                    const nickname = document.getElementById('nickname').value;
+                    const email = document.getElementById('email').value;
+                    const phone = document.getElementById('phone').value;
+                    const password = document.getElementById('password').value;
+                    // 验证邮箱或手机号至少填一个
+                    if (!email && !phone) {
+                        errorElement.textContent = '请至少填写邮箱或手机号';
+                        errorElement.style.display = 'block';
+                        successElement.style.display = 'none';
+                        return;
+                    }
+                    // 保存到localStorage
+                    const userData = {
+                        nickname: nickname,
+                        email: email,
+                        phone: phone,
+                        password: password,
+                        avatar: document.getElementById('user-avatar').src
+                    };
+                    localStorage.setItem('userData', JSON.stringify(userData));
+                    // 显示成功消息
+                    successElement.textContent = '设置已成功保存！';
+                    successElement.style.display = 'block';
+                    errorElement.style.display = 'none';
+                    // 3秒后隐藏成功消息
+                    setTimeout(() => {
+                        successElement.style.display = 'none';
+                    }, 3000);
+                });
+            }
+
+            // 全局搜索功能（用于顶部搜索框）
+            globalSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    globalSearchBtn.click();
+                }
+            });
+
+            // 初始化
+            showTabsForPage('home');
+            activateTab('product-ai');
+            initProductSearch();
+            initFarmerInfo();
+            initDemand();
+            initLogistics();
+            initUserSettings();
+        });
+    </script>
+</body>
+</html>
+```
